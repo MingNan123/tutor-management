@@ -6,3 +6,5 @@ export async function passwordHash(password:string,salt:string){const key=await 
 export function validatePassword(value:string){if(typeof value!=='string'||value.length<8||value.length>128)throw Error('密码需为 8–128 个字符');}
 export function secureEqual(a:string,b:string){let mismatch=a.length^b.length;for(let i=0;i<Math.max(a.length,b.length);i++)mismatch|=(a.charCodeAt(i)||0)^(b.charCodeAt(i)||0);return mismatch===0;}
 export function checkOrigin(req:Request){if(req.headers.get('origin')!==new URL(req.url).origin)throw Error('请求来源无效，请从系统页面操作');}
+
+export const normalizeUsername=(value:unknown)=>String(value||'').normalize('NFKC').trim().toLowerCase();
