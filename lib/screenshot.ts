@@ -1,0 +1,2 @@
+export const MAX_SCREENSHOT_BYTES=5*1024*1024;
+export function validateScreenshot(bytes:Uint8Array,size:number){if(size<=0||size>MAX_SCREENSHOT_BYTES)throw Error('截图不能为空且不能超过 5MB');const png=[137,80,78,71,13,10,26,10];if(png.every((v,i)=>bytes[i]===v))return 'image/png';if(bytes[0]===255&&bytes[1]===216&&bytes[2]===255)return 'image/jpeg';if(String.fromCharCode(...bytes.slice(0,4))==='RIFF'&&String.fromCharCode(...bytes.slice(8,12))==='WEBP')return 'image/webp';throw Error('请上传 JPG、PNG 或 WebP 格式的图片');}

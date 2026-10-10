@@ -1,0 +1,9 @@
+'use client';
+import {useState} from 'react';
+import {SharedSchedule} from '../../lib/model';
+import {todayChina} from '../../lib/teaching';
+export default function InstitutionSchedule({items,teachers}:{items:SharedSchedule[];teachers:{id:string;name:string;employment:string}[]}){
+const [teacher,setTeacher]=useState(''),[from,setFrom]=useState(todayChina()),[to,setTo]=useState('');
+const rows=items.filter(x=>(!teacher||x.teacherId===teacher)&&(!from||x.date>=from)&&(!to||x.date<=to)).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+return <section className="card"><div className="cardhead"><h2>机构老师排课 <span>{rows.length}</span></h2><span className="subtle">课表查询</span></div><div className="overviewfilters"><label>授课老师<select value={teacher} onChange={e=>setTeacher(e.target.value)}><option value="">全部可见老师</option>{teachers.map(t=><option key={t.id} value={t.id}>{t.name} · {t.employment==='fulltime'?'全职':'兼职'}</option>)}</select></label><label>开始日期<input type="date" value={from} onChange={e=>setFrom(e.target.value)}/></label><label>结束日期<input type="date" value={to} min={from} onChange={e=>setTo(e.target.value)}/></label><button className="secondary" onClick={()=>{setTeacher('');setFrom('');setTo('')}}>查看全部日期</button></div><div className="tablewrap"><table><thead><tr><th>老师</th><th>任职类型</th><th>授课日期</th><th>时间</th><th>科目</th><th>课时</th><th>状态</th></tr></thead><tbody>{rows.map(x=><tr key={x.id}><td><b>{x.teacherName}</b></td><td>{x.employment==='fulltime'?'全职老师':'兼职老师'}</td><td>{x.date}</td><td>{x.start} – {x.end}</td><td>{x.subject}</td><td>{x.hours} 小时</td><td><span className={'pill '+x.status}>{({planned:'待授课',leave:'已请假',pending:'审批中',completed:'已完成'} as Record<string,string>)[x.status]}</span></td></tr>)}</tbody></table>{!rows.length&&<div className="empty">所选老师与日期暂无排课</div>}</div></section>;
+}

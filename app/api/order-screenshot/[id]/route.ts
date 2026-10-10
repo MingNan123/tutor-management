@@ -1,0 +1,6 @@
+import {can,inScope} from '../../../../lib/permissions';
+import {teacherVisible} from '../../../../lib/model';
+import {env} from 'cloudflare:workers';
+import {workspaceAccess} from '../../../../lib/workspace-access';
+export const dynamic='force-dynamic';
+export async function GET(req:Request,{params}:{params:Promise<{id:string}>}){try{const {id}=await params;const {user,state,member,owner}=await workspaceAccess();const meta=await env.DB!.prepare('SELECT * FROM order_screenshots WHERE id=?').bind(id).first<any>();if(!meta)return new Response('截图不存在',{status:404});const order=state.orders.find(o=>o.screenshotId===id);const permitted=owner||member.role==='admin'||can(state,member,'screenshots.view')&&can(state,member,'orders.view')&&(order?inScope(state,member,'orders',order.salesId,order.teacherId)&&state.members.some(t=>t.id===order.teacherId&&(t.id===member.id||teacherVisible(member,t))):meta.uploader===user.userId);if(!permitted)return new Response('无权查看订单截图',{status:403});const object=await env.BUCKET!.get(meta.object_key);if(!object)return new Response('截图文件不存在',{status:404});return new Response(object.body,{headers:{'Content-Type':meta.mime,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Content-Disposition':'inline'}});}catch(e:any){return new Response(e.message,{status:403});}}
