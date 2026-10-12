@@ -13,12 +13,13 @@ export function makeInitialization({company,name,email,username,password}) {
   const id=randomUUID(),salt=randomBytes(32).toString('hex'),stamp=new Date().toISOString();
   const hash=pbkdf2Sync(password,salt,100000,32,'sha256').toString('hex');
   const member={id,name,email,username,role:'admin',adminLevel:1,status:'active',employment:'fulltime',positionId:'pos_admin',hasPassword:true,createdAt:stamp,updatedAt:stamp};
-  const state={owner:'standalone-'+randomUUID(),company,members:[member],students:[],orders:[],lessons:[],schedules:[],trials:[],followups:[],groups:[],logs:[{id:randomUUID(),date:stamp,actor:name,action:'机构初始化'}]};
+  const state={owner:'standalone-'+randomUUID(),company};
   const q=x=>"'"+String(x).replaceAll("'","''")+"'";
   // A populated workspace blocks all writes. No production data or passwords are overwritten.
   const sql=`INSERT INTO workspaces (id,data,version) SELECT 'enterprise',${q(JSON.stringify(state))},0 WHERE NOT EXISTS(SELECT 1 FROM workspaces WHERE id='enterprise');
 INSERT INTO enterprise_accounts (id,name,email,username,password_hash,password_salt,role,status,employment,admin_level,position_id,created_at,updated_at) SELECT ${[id,name,email,username,hash,salt,'admin','active','fulltime',1,'pos_admin',stamp,stamp].map(q).join(',')} WHERE EXISTS(SELECT 1 FROM workspaces WHERE id='enterprise' AND data=${q(JSON.stringify(state))});
 INSERT OR IGNORE INTO account_initializations (id,created_at) SELECT 'enterprise',${q(stamp)} WHERE EXISTS(SELECT 1 FROM enterprise_accounts WHERE id=${q(id)});
+INSERT INTO audit_events(id,date,actor,actor_id,action) SELECT ${q(randomUUID())},${q(stamp)},${q(name)},${q(id)},'机构初始化' WHERE EXISTS(SELECT 1 FROM enterprise_accounts WHERE id=${q(id)});
 INSERT OR IGNORE INTO account_initializations (id,created_at) SELECT 'staff-policy-v1',${q(stamp)} WHERE EXISTS(SELECT 1 FROM enterprise_accounts WHERE id=${q(id)});`;
   return {sql,id};
 }

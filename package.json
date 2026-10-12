@@ -18,7 +18,12 @@
     "cf:migrate": "wrangler d1 migrations apply tutor-management --remote --config cloudflare/wrangler.json",
     "cf:init": "cd cloudflare && node initialize.mjs",
     "cf:deploy": "wrangler deploy --config cloudflare/wrangler.json",
-    "cf:domain": "cd cloudflare && node configure.mjs domain"
+    "cf:domain": "cd cloudflare && node configure.mjs domain",
+    "typecheck": "tsc --noEmit",
+    "test:system": "node scripts/verify-system.mjs",
+    "test:migration": "node scripts/verify-migration.mjs",
+    "test": "node scripts/verify-accounts.mjs && node scripts/verify-teaching.mjs && node scripts/verify-trials.mjs && node scripts/verify-migration.mjs && node scripts/verify-system.mjs",
+    "cf:preview": "wrangler dev --config cloudflare/wrangler.json --local --port 8787"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

@@ -1,0 +1,8 @@
+import {env} from 'cloudflare:workers';
+import {workspaceAccess} from '../../../lib/workspace-access';
+import {auditStatement} from '../../../lib/state-store';
+import {checkOrigin} from '../../../lib/password';
+import {backup,cleanup} from '../../../cloudflare/maintenance.mjs';
+export const dynamic='force-dynamic';
+export async function GET(req:Request){try{const {member}=await workspaceAccess();if(member.role!=='admin')throw Error('仅管理员可查看备份');const key=new URL(req.url).searchParams.get('key');if(key){if(!/^system-backups\/[a-zA-Z0-9T.:-]+\.json$/.test(key))throw Error('备份路径不正确');const object=await env.BUCKET!.get(key);if(!object)throw Error('备份不存在');return new Response(object.body,{headers:{'Content-Type':'application/json','Content-Disposition':'attachment; filename="backup.json"','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});}const page=await env.BUCKET!.list({prefix:'system-backups/'});return Response.json({backups:page.objects.map(x=>({key:x.key,size:x.size,uploaded:x.uploaded})).sort((a,b)=>b.key.localeCompare(a.key))},{headers:{'Cache-Control':'no-store'}});}catch(e:any){return Response.json({error:e.message},{status:403});}}
+export async function POST(req:Request){try{checkOrigin(req);const {member}=await workspaceAccess();if(member.role!=='admin')throw Error('仅管理员可维护数据');const b:any=await req.json();if(!['backup','cleanup'].includes(b.action))throw Error('不支持的维护操作');const result=b.action==='backup'?await backup(env):await cleanup(env);await env.DB!.batch([auditStatement(member,b.action==='backup'?'手动完整备份':'清理临时截图','',result)]);return Response.json({ok:true,...result});}catch(e:any){return Response.json({error:e.message},{status:400});}}

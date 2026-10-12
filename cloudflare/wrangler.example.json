@@ -37,6 +37,11 @@
   "workers_dev": true,
   "preview_urls": false,
   "observability": {
-    "enabled": false
+    "enabled": true
+  },
+  "triggers": {
+    "crons": [
+      "0 19 * * *"
+    ]
   }
 }

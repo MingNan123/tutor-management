@@ -9,7 +9,7 @@ try{
 for(const name of ['teaching','permissions','trials','model']){let source=await readFile(new URL('../lib/'+name+'.ts',import.meta.url),'utf8');source=source.replace(/'\.\/(teaching|trials|permissions)'/g,"'./$1.mjs'");await writeFile(join(dir,name+'.mjs'),ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText);}
 const {seed,apply,used,pending,scheduled,scheduleStatus}=await import(pathToFileURL(join(dir,'model.mjs')));
 const {todayChina,waitingHours,weekDates}=await import(pathToFileURL(join(dir,'teaching.mjs')));
-const s=seed('owner','test@example.com');s.lessons=[];s.orders.forEach(o=>{o.date='2026-01-01';o.expiry='2027-12-31'});const [admin,sales,other,teacher,teacher2]=s.members;teacher.employment='fulltime';teacher2.employment='fulltime';const today=todayChina();const slot={orderId:s.orders[0].id,date:today,start:'09:00',end:'11:00',location:'A教室',note:'基础巩固'};
+const s=seed('owner','test@example.com');s.lessons=[];s.orders.forEach(o=>{o.date='2026-01-01';o.expiry='2027-12-31'});const [admin,sales,other,teacher,teacher2]=s.members;teacher.employment='fulltime';teacher2.employment='fulltime';const today=todayChina();Date.now=()=>Date.parse(today+'T23:59:59+08:00');const slot={orderId:s.orders[0].id,date:today,start:'09:00',end:'11:00',location:'A教室',note:'基础巩固'};
 assert.throws(()=>apply(s,teacher,'schedule',slot));assert.throws(()=>apply(s,other,'schedule',slot));
 apply(s,sales,'schedule',slot);const plan=s.schedules[0];assert.equal(scheduled(s,slot.orderId),2);
 assert.throws(()=>apply(s,sales,'schedule',{...slot,orderId:s.orders[2].id,start:'10:00',end:'12:00'}),/冲突/);

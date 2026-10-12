@@ -1,3 +1,4 @@
+export function classEnded(date:string,end:string,now=Date.now()){return validDate(date)&&Number.isFinite(Date.parse(date+'T'+end+':00+08:00'))&&Date.parse(date+'T'+end+':00+08:00')<=now;}
 export const todayChina=()=>new Date(Date.now()+8*3600000).toISOString().slice(0,10);
 export function validDate(v:string){return /^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v;}
 export function minutes(v:string){if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(v))throw Error('上课时间格式不正确');return Number(v.slice(0,2))*60+Number(v.slice(3));}
