@@ -1,0 +1,62 @@
+name: Deploy tutor management to Cloudflare
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tutor-cloudflare-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned package manager
+        run: npm install --global pnpm@11.25.0
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck and build
+        run: |
+          pnpm typecheck
+          pnpm build:cloudflare
+          pnpm test
+      - name: Configure existing production resources
+        run: |
+          node --input-type=module <<'NODE'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          const c=JSON.parse(readFileSync('cloudflare/wrangler.example.json','utf8'));
+          c.account_id='52d913bb395d34c54f13680f08a885b1';
+          c.d1_databases[0].database_id='2a8f30f8-7b21-49aa-892a-5bc69dc63418';
+          c.routes=[{pattern:'jiaowu.mingshop123.com',custom_domain:true}];
+          writeFileSync('cloudflare/wrangler.json',JSON.stringify(c,null,2));
+          NODE
+      - name: Back up database to private R2, migrate and deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: 52d913bb395d34c54f13680f08a885b1
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "Missing CLOUDFLARE_API_TOKEN repository secret"; exit 1; }
+          backup_file="$RUNNER_TEMP/tutor-before-upgrade.sql"
+          backup_key="deployment-backups/${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${GITHUB_SHA}.sql"
+          pnpm exec wrangler d1 export tutor-management --remote --config cloudflare/wrangler.json --output "$backup_file"
+          test -s "$backup_file"
+          pnpm exec wrangler r2 object put "tutor-order-screenshots/$backup_key" --remote --file "$backup_file" --config cloudflare/wrangler.json
+          echo "Database backup saved in private R2: $backup_key" >> "$GITHUB_STEP_SUMMARY"
+          pnpm cf:migrate
+          pnpm cf:deploy
+          rm -f "$backup_file"
+      - name: Check HTTPS response
+        run: |
+          curl --fail --silent --show-error --retry 5 --retry-delay 10 --retry-all-errors --output /dev/null https://jiaowu.mingshop123.com/
+          echo "Deployment completed. Verify administrator login, existing records and order screenshots before resuming work." >> "$GITHUB_STEP_SUMMARY"
