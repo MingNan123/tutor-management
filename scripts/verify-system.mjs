@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import {readFile,readdir} from 'node:fs/promises';
 import {DatabaseSync} from 'node:sqlite';
 import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
 import {restoreSQL} from './restore-backup.mjs';
 process.env.TUTOR_INIT_TEST='1';
 const {makeInitialization}=await import('../cloudflare/initialize.mjs');
 const require=createRequire(import.meta.url);const workerRequire=createRequire(require.resolve('wrangler/package.json'));const {Miniflare}=workerRequire('miniflare');
-const root=new URL('../',import.meta.url).pathname;const migrations=(await readdir(root+'drizzle')).filter(x=>x.endsWith('.sql')).sort();
+const root=fileURLToPath(new URL('../',import.meta.url));const migrations=(await readdir(root+'drizzle')).filter(x=>x.endsWith('.sql')).sort();
 const paths=(await readdir(root+'dist/server',{recursive:true})).filter(x=>/\.(mjs|js)$/.test(x)&&x!=='standalone.mjs');
 const mf=new Miniflare({name:'tutor-test',modules:[{type:'ESModule',path:root+'dist/server/standalone.mjs'},...paths.map(x=>({type:'ESModule',path:root+'dist/server/'+x}))],compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],d1Databases:{DB:'test-db'},r2Buckets:['BUCKET'],assets:{workerName:'tutor-test',directory:root+'dist/client',binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}}});
 let checks=0;const ok=(value,message)=>{assert(value,message);checks++;};
@@ -65,3 +66,4 @@ ok((await db.prepare('SELECT data FROM workspaces').first()).data.indexOf('stude
 r=await request('/','');ok(r.res.status===200,'production HTML rendered');const forged=await mf.dispatchFetch(origin+'/api/workspace',{headers:{'oai-authenticated-user-id':'admin','oai-authenticated-user-email':'admin@example.com'}});ok(forged.status===401,'forged platform headers rejected');
 console.log('PASS: '+checks+' assertions across registration, approval, permissions, orders, images, schedules, handover, lesson workflow, concurrency, cleanup, backup and restore');
 }finally{await mf.dispose();}
+
