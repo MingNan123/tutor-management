@@ -1,4 +1,5 @@
 import {inScope} from './permissions';
+import {activeTeacher,validateSlot} from './model';
 import type {State,Member} from './model';
 import {validDate,todayChina,duration,overlaps,classEnded} from './teaching';
 export type TrialStatus='pending'|'confirmed'|'completed'|'cancelled'|'absent';
@@ -16,8 +17,8 @@ const old=s.trials.find(x=>x.id===p.id),manager=m.role==='admin'||m.role==='sale
 if(op==='trial'){
 need(m.role==='admin'||m.role==='sales','仅顾问和管理员可安排试课');need(!p.id||old,'试课不存在');if(old){need(manager,'只能管理本人客户试课');need(str(p.reason),'修改或改期须填写原因');need(!old.orderId&&(!['completed'].includes(old.status)||m.role==='admin'),'已成交或已完成试课不再调整安排');}
 const st=s.students.find(x=>x.id===p.studentId),t=s.members.find(x=>x.id===p.teacherId);
-need(st&&(inScope(s,m,'trials',st.salesId)),'请选择本人负责的学员');need(t?.role==='teacher'&&t.status!=='disabled','请选择启用的授课老师');need(m.role==='admin'||t?.employment==='fulltime'||t?.ownerSalesId===m.id,'只能选择全职或本人所属兼职老师');
-need(validDate(p.date)&&p.date>=todayChina(),'试课日期不能早于今天');need(str(p.subject)&&str(p.goal)&&['线上','线下'].includes(p.mode),'请填写科目、试课目标及授课方式');const hours=duration(p.start,p.end);need(!trialConflict(s,{...p,id:old?.id}),'试课冲突：老师或学员已有正式课或试课安排');const fee=Number(p.fee||0),paid=Number(p.paid||0);need(Number.isFinite(fee)&&Number.isFinite(paid)&&fee>=0&&paid>=0&&paid<=fee,'试课金额不正确');need(!p.nextDate||validDate(p.nextDate),'下次跟进日期无效');
+need(st&&(inScope(s,m,'trials',st.salesId)),'请选择本人负责的学员');need(t?.role==='teacher'&&activeTeacher(s,t.id),'请选择启用的授课老师');need(m.role==='admin'||t?.employment==='fulltime'||t?.ownerSalesId===m.id,'只能选择全职或本人所属兼职老师');
+need(validDate(p.date)&&p.date>=todayChina(),'试课日期不能早于今天');need(str(p.subject)&&str(p.goal)&&['线上','线下'].includes(p.mode),'请填写科目、试课目标及授课方式');const hours=duration(p.start,p.end);validateSlot(s,{...p,teacherId:t!.id,studentId:st!.id},{trialId:old?.id});need(!trialConflict(s,{...p,id:old?.id}),'试课冲突：老师或学员已有正式课或试课安排');const fee=Number(p.fee||0),paid=Number(p.paid||0);need(Number.isFinite(fee)&&Number.isFinite(paid)&&fee>=0&&paid>=0&&paid<=fee,'试课金额不正确');need(!p.nextDate||validDate(p.nextDate),'下次跟进日期无效');
 const values={studentId:st!.id,salesId:st!.salesId,teacherId:t!.id,subject:str(p.subject),date:p.date,start:p.start,end:p.end,hours,mode:p.mode,location:str(p.location),goal:str(p.goal),note:str(p.note),fee,paid,updatedAt:now};
 if(old){const before=old.date+' '+old.start+'–'+old.end;const changed=old.date!==p.date||old.start!==p.start||old.end!==p.end||old.teacherId!==t!.id||old.studentId!==st!.id;Object.assign(old,values);if(changed||['cancelled','absent'].includes(old.status)){old.status='pending';old.familyConfirmedAt='';}old.history.push({date:now,actor:m.name,action:'修改试课安排',note:before+' → '+p.date+' '+p.start+'–'+p.end+'；'+str(p.reason)});}else{s.trials.unshift({...values,id:crypto.randomUUID(),status:'pending',teacherFeedback:'',familyReview:'',followup:'',nextDate:str(p.nextDate),outcome:'pending',created:now,history:[{date:now,actor:m.name,action:'安排试课',note:''}]});}
 }else{

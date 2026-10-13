@@ -5,7 +5,7 @@ import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import ts from 'typescript';
 const dir=await mkdtemp(join(tmpdir(),'zhixing-accounts-'));
-try{for(const name of ['teaching','permissions','trials','model']){let source=await readFile(new URL('../lib/'+name+'.ts',import.meta.url),'utf8');source=source.replace(/'\.\/(teaching|trials|permissions)'/g,"'./$1.mjs'");await writeFile(join(dir,name+'.mjs'),ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText);}const {seed,apply}=await import(pathToFileURL(join(dir,'model.mjs')));const s=seed('owner','owner@example.com');const [admin,sales,,teacher]=s.members;
+try{for(const name of ['teaching','permissions','trials','model']){let source=await readFile(new URL('../lib/'+name+'.ts',import.meta.url),'utf8');source=source.replace(/'\.\/(teaching|trials|permissions|model)'/g,"'./$1.mjs'");await writeFile(join(dir,name+'.mjs'),ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText);}const {seed,apply}=await import(pathToFileURL(join(dir,'model.mjs')));const s=seed('owner','owner@example.com');const [admin,sales,,teacher]=s.members;
 assert.throws(()=>apply(s,sales,'member',{name:'员工',role:'teacher',email:'one@example.com'}));
 apply(s,admin,'member',{name:'新老师',role:'teacher',email:' NEW@EXAMPLE.COM ',status:'active'});const added=s.members.at(-1);assert.equal(added.email,'new@example.com');assert.ok(added.createdAt&&added.updatedAt);
 assert.throws(()=>apply(s,admin,'member',{name:'重复',role:'sales',email:'NEW@example.com'}),/已绑定/);
