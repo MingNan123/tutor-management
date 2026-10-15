@@ -6,7 +6,7 @@ import {pathToFileURL} from 'node:url';
 import ts from 'typescript';
 const dir=await mkdtemp(join(tmpdir(),'tutor-closure-'));
 try{
-for(const name of ['teaching','permissions','trials','model','workspace-view']){const source=(await readFile(new URL('../lib/'+name+'.ts',import.meta.url),'utf8')).replace(/'\.\/(teaching|trials|permissions|model)'/g,"'./$1.mjs'");await writeFile(join(dir,name+'.mjs'),ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText);}
+for(const name of ['teaching','permissions','trials','model','finance','workspace-view']){const source=(await readFile(new URL('../lib/'+name+'.ts',import.meta.url),'utf8')).replace(/'\.\/(teaching|trials|permissions|model|finance)'/g,"'./$1.mjs'");await writeFile(join(dir,name+'.mjs'),ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ES2022}}).outputText);}
 const {seed,apply,teachingAllowance,teacherAt,teachingBalance}=await import(pathToFileURL(join(dir,'model.mjs')));
 const {workspaceView}=await import(pathToFileURL(join(dir,'workspace-view.mjs')));
 const {defaultPositions}=await import(pathToFileURL(join(dir,'permissions.mjs')));

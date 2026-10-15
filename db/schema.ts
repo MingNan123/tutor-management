@@ -24,3 +24,5 @@ export const businessPositions=sqliteTable('business_positions',{id:text('id').p
 
 export const auditEvents=sqliteTable('audit_events',{id:text('id').primaryKey(),date:text('date').notNull(),actor:text('actor').notNull(),actorId:text('actor_id'),action:text('action').notNull(),targetId:text('target_id'),details:text('details')});
 export const recoveryGuards=sqliteTable('recovery_guards',{token:text('token').primaryKey(),ok:integer('ok').notNull()});
+
+export const businessPayments=sqliteTable('business_payments',{id:text('id').primaryKey(),data:text('data').notNull(),revision:integer('revision').notNull().default(1)});

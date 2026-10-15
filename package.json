@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit",
     "test:system": "node scripts/verify-system.mjs",
     "test:migration": "node scripts/verify-migration.mjs",
-    "test": "node scripts/verify-accounts.mjs && node scripts/verify-teaching.mjs && node scripts/verify-trials.mjs && node scripts/verify-closure.mjs && node scripts/verify-migration.mjs && node scripts/verify-system.mjs",
+    "test": "node scripts/verify-accounts.mjs && node scripts/verify-teaching.mjs && node scripts/verify-trials.mjs && node scripts/verify-closure.mjs && node scripts/verify-growth.mjs && node scripts/verify-migration.mjs && node scripts/verify-system.mjs",
     "cf:preview": "wrangler dev --config cloudflare/wrangler.json --local --port 8787"
   },
   "dependencies": {

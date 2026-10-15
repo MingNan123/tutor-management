@@ -2,7 +2,7 @@ import {env} from 'cloudflare:workers';
 import {hydrateAccounts,accountWriteStatement,groupWriteStatement} from './accounts';
 import {defaultPositions} from './permissions';
 import type {State,Member} from './model';
-export const collections=['students','orders','schedules','lessons','trials','followups','positions'] as const;
+export const collections=['students','orders','schedules','lessons','trials','followups','positions','payments'] as const;
 export type Revisions=Record<string,number|string>;
 export async function loadState(){
  const results=await env.DB!.batch([env.DB!.prepare("SELECT data,version FROM workspaces WHERE id='enterprise'"),...collections.map(n=>env.DB!.prepare('SELECT id,data,revision FROM business_'+n)),env.DB!.prepare('SELECT id,date,actor,action FROM audit_events ORDER BY date DESC,id DESC LIMIT 500')]);
@@ -17,7 +17,7 @@ export async function commitState(before:State,after:State,version:number,curren
  const metadata={owner:after.owner,company:after.company};const serialized=JSON.stringify(metadata);const writes:any[]=[];
  const changed=(a:any,b:any)=>JSON.stringify(a)!==JSON.stringify(b);
  function check(key:string){if((client[key]??0)!==(current[key]??0))throw Error('该记录已被其他人员修改，请刷新后重试');}
- for(const n of collections){const old=(before as any)[n]||[];for(const x of (after as any)[n]||[]){const previous=old.find((v:any)=>v.id===x.id);if(!changed(previous,x))continue;check(n+':'+x.id);writes.push(env.DB!.prepare(`INSERT INTO business_${n}(id,data,revision) SELECT ?,?,1 WHERE EXISTS(SELECT 1 FROM workspaces WHERE id='enterprise' AND version=? AND data=?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,revision=business_${n}.revision+1`).bind(x.id,JSON.stringify(x),version+1,serialized));}}
+ for(const n of collections){const old=(before as any)[n]||[];for(const x of (after as any)[n]||[]){const previous=old.find((v:any)=>v.id===x.id);if(!changed(previous,x))continue;if(n==='payments'&&previous)throw Error('收退款流水不可修改，请使用冲正');check(n+':'+x.id);writes.push(env.DB!.prepare(`INSERT INTO business_${n}(id,data,revision) SELECT ?,?,1 WHERE EXISTS(SELECT 1 FROM workspaces WHERE id='enterprise' AND version=? AND data=?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,revision=business_${n}.revision+1`).bind(x.id,JSON.stringify(x),version+1,serialized));}}
  if(before.company!==after.company)check('company');
  for(const x of after.members){const old=before.members.find(v=>v.id===x.id);if(!changed(old,x))continue;check('members:'+x.id);writes.push(accountWriteStatement(x,serialized,version+1));if(x.status!=='active'||old?.role!==x.role||old?.positionId!==x.positionId)writes.push(env.DB!.prepare("DELETE FROM login_sessions WHERE account_id=? AND EXISTS(SELECT 1 FROM workspaces WHERE id='enterprise' AND version=? AND data=?)").bind(x.id,version+1,serialized));}
  for(const x of after.groups||[]){if(!changed(before.groups?.find(v=>v.id===x.id),x))continue;check('groups:'+x.id);writes.push(groupWriteStatement(x,serialized,version+1));}

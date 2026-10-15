@@ -1,0 +1,4 @@
+'use client';
+export {reminders} from '../../lib/reminders';
+import type {Reminder} from '../../lib/reminders';
+export default function Reminders({items,onOpen}:{items:Reminder[];onOpen:(r:Reminder)=>void}){return <section className="card"><div className="cardhead"><h2>异常与到期提醒 <span>{items.length} 条</span></h2><span className="subtle">依据当前可见业务记录实时生成</span></div><div className="tablewrap"><table><thead><tr><th>状态</th><th>事项</th><th>说明</th><th>处理</th></tr></thead><tbody>{items.map(r=><tr key={r.id}><td><span className={'pill '+(r.urgent?'rejected':'sales')}>{r.urgent?'需尽快处理':'关注'}</span></td><td><b>{r.title}</b></td><td>{r.note}</td><td><button className="link" onClick={()=>onOpen(r)}>前往处理</button></td></tr>)}</tbody></table>{!items.length&&<div className="empty">暂无需要处理的异常或到期事项。</div>}</div><p className="footnote">补款、审批、提交消课或完成跟进后，对应提醒会自动消失；仅在工作台内提醒，不发送短信或邮件。</p></section>;}
