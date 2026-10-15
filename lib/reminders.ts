@@ -7,7 +7,7 @@ import {followupTasks} from './trials';
 export type Reminder={id:string;title:string;note:string;page:string;kind?:string;item?:any;urgent:boolean};
 export function reminders(s:State,m:Member):Reminder[]{const rows:Reminder[]=[],today=todayChina(),name=(o:any)=>s.students.find(x=>x.id===o.studentId)?.name||'学员';
  for(const o of s.orders.filter(o=>o.status!=='void')){const b=teachingBalance(s,o),left=b.allowance-b.used-b.pending-b.scheduled,days=(Date.parse(o.expiry)-Date.parse(today))/86400000;
- if(can(s,m,'orders.view')&&o.hours*o.price-o.paid>0)rows.push({id:'debt:'+o.id,title:name(o)+' · 待收款',note:'待收 ¥'+(o.hours*o.price-o.paid).toFixed(2),page:'finance',kind:'order',item:o,urgent:false});
+ if(['admin','sales'].includes(m.role)&&can(s,m,'orders.view')&&o.hours*o.price-o.paid>0)rows.push({id:'debt:'+o.id,title:name(o)+' · 待收款',note:'待收 ¥'+(o.hours*o.price-o.paid).toFixed(2),page:'finance',kind:'order',item:o,urgent:false});
  if(can(s,m,'schedule.view')&&left<10)rows.push({id:'hours:'+o.id,title:name(o)+' · 可授课额度不足 10 小时',note:'当前可新增 '+Math.max(0,left).toFixed(2)+' 小时',page:'schedule',kind:'order',item:o,urgent:left<=0});
  if(can(s,m,'schedule.view')&&days<=14)rows.push({id:'expiry:'+o.id,title:name(o)+(days<0?' · 订单已到期':' · 订单即将到期'),note:'有效期至 '+o.expiry,page:'schedule',kind:'order',item:o,urgent:days<0});}
  for(const l of s.lessons)if((l.status==='sales'&&m.role==='sales'&&can(s,m,'approvals.sales')&&s.orders.find(o=>o.id===l.orderId)?.salesId===m.id||l.status==='admin'&&m.role==='admin')&&waitingHours(l)>=48)rows.push({id:'approval:'+l.id,title:'消课审批超时',note:l.date+' · 已等待 '+Math.floor(waitingHours(l))+' 小时',page:'approvals',kind:'lesson',item:l,urgent:true});
